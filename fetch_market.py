@@ -48,14 +48,30 @@ def get_emaxis_slim_price() -> int | None:
 
     soup = BeautifulSoup(resp.text, "html.parser")
 
-    # 構造: <div><span>基準価額</span><span>日付</span><span>33,669 円</span></div>
-    # 「基準価額」を含む span を探し、同じ div 内の span から価格を取得する
-    for tag in soup.find_all("span", string=re.compile("基準価額")):
-        container = tag.parent  # 親の <div>
-        for span in container.find_all("span"):
-            text = span.get_text(strip=True).replace(",", "").replace("円", "").strip()
-            if re.fullmatch(r"\d+", text) and int(text) >= 1000:
-                return int(text)
+    # 構造:
+    # <div>
+    #   <div>基準価額</div>
+    #   <div>
+    #     <div>03/09</div>
+    #     <div>33,669 円</div>
+    #   </div>
+    # </div>
+    for tag in soup.find_all(string=re.compile(r"^基準価額$")):
+        label_el = tag.parent           # <div>基準価額</div>
+        price_container = label_el.find_next_sibling()
+        if price_container:
+            for el in price_container.find_all(True):
+                text = el.get_text(strip=True).replace(",", "").replace("円", "").strip()
+                if re.fullmatch(r"\d+", text) and int(text) >= 1000:
+                    return int(text)
+
+    # フォールバック: ページテキストから「基準価額」直後の価格を抽出
+    page_text = soup.get_text("\n", strip=True)
+    match = re.search(r"基準価額.*?\n([\d,]+)\s*円", page_text, re.DOTALL)
+    if match:
+        value = int(match.group(1).replace(",", ""))
+        if value >= 1000:
+            return value
 
     return None
 
