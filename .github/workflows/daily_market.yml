@@ -1,0 +1,27 @@
+name: Daily Market Info
+
+on:
+  schedule:
+    - cron: '0 22 * * *'  # UTC 22:00 = JST 翌07:00
+  workflow_dispatch:       # GitHub上から手動実行も可能
+
+jobs:
+  fetch-and-notify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run market fetch script
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: python fetch_market.py
