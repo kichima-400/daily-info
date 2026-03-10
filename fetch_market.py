@@ -48,23 +48,14 @@ def get_emaxis_slim_price() -> int | None:
 
     soup = BeautifulSoup(resp.text, "html.parser")
 
-    # 方法1: <td> / <dd> などで "基準価額" ラベルの直後の数値要素を探す
-    # 基準価額は必ず 1,000円 以上のため、4桁未満は除外する
-    for tag in soup.find_all(string=re.compile("基準価額")):
-        parent = tag.parent
-        for sibling in parent.find_next_siblings():
-            text = sibling.get_text(strip=True).replace(",", "").replace("円", "").strip()
+    # 構造: <div><span>基準価額</span><span>日付</span><span>33,669 円</span></div>
+    # 「基準価額」を含む span を探し、同じ div 内の span から価格を取得する
+    for tag in soup.find_all("span", string=re.compile("基準価額")):
+        container = tag.parent  # 親の <div>
+        for span in container.find_all("span"):
+            text = span.get_text(strip=True).replace(",", "").replace("円", "").strip()
             if re.fullmatch(r"\d+", text) and int(text) >= 1000:
                 return int(text)
-
-    # 方法2: ページ全体テキストから「基準価額」直後の数値パターンを抽出
-    # カンマ区切り（例: 25,432）または5桁以上の数値のみ対象とする
-    page_text = soup.get_text()
-    matches = re.findall(r"基準価額[^\d]{0,20}([\d,]+)", page_text)
-    for m in matches:
-        value = int(m.replace(",", ""))
-        if value >= 1000:
-            return value
 
     return None
 
