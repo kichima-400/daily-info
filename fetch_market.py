@@ -163,12 +163,43 @@ def main() -> None:
         train_statuses = get_train_status()
         if train_statuses:
             lines = []
-            for route, status, detail in train_statuses:
+            # 小田急3路線をまとめる
+            odakyu = [(r, s, d) for r, s, d in train_statuses if "小田急" in r and "多摩線" not in r]
+            others = [(r, s, d) for r, s, d in train_statuses if "小田急" not in r]
+
+            for route, status, detail in others:
                 emoji = next((v for k, v in STATUS_EMOJI.items() if k in status), "ℹ️")
                 line = f"• {emoji} {route}: *{status}*"
                 if detail and "ありません" not in detail:
                     line += f"\n   _{detail}_"
                 lines.append(line)
+
+            if odakyu:
+                # 最も深刻なステータスを代表として表示
+                STATUS_PRIORITY = ["運転見合", "遅延", "運転再開", "平常運転"]
+                def priority(s):
+                    for i, key in enumerate(STATUS_PRIORITY):
+                        if key in s:
+                            return i
+                    return len(STATUS_PRIORITY)
+
+                odakyu_sorted = sorted(odakyu, key=lambda x: priority(x[1]))
+                worst_status = odakyu_sorted[0][1]
+                emoji = next((v for k, v in STATUS_EMOJI.items() if k in worst_status), "ℹ️")
+
+                if worst_status == "平常運転" or all(s == "平常運転" for _, s, _ in odakyu):
+                    lines.append(f"• {emoji} 小田急線（小田原線・江ノ島線）: *平常運転*")
+                else:
+                    # 異常がある路線のみ詳細表示
+                    sub_lines = []
+                    for route, status, detail in odakyu:
+                        e = next((v for k, v in STATUS_EMOJI.items() if k in status), "ℹ️")
+                        sub = f"  - {e} {route}: *{status}*"
+                        if detail and "ありません" not in detail:
+                            sub += f" _{detail}_"
+                        sub_lines.append(sub)
+                    lines.append(f"• 小田急線（小田原線・江ノ島線）:\n" + "\n".join(sub_lines))
+
             train_text = "\n".join(lines)
         else:
             train_text = "• 対象路線の情報が見つかりませんでした"
