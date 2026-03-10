@@ -3,6 +3,7 @@
 - ドル円レート
 - ユーロ円レート
 - eMAXIS Slim 全世界株式（オール・カントリー）基準価額
+- 都営三田線・JR京浜東北線・小田急線の運行情報
 """
 
 import os
@@ -76,6 +77,53 @@ def get_emaxis_slim_price() -> int | None:
     return None
 
 
+TRAIN_LINES = [
+    "三田線",
+    "京浜東北",
+    "小田急",
+]
+
+STATUS_EMOJI = {
+    "平常運転": "✅",
+    "遅延":     "⚠️",
+    "運転見合": "🚫",
+    "運転再開": "🔄",
+}
+
+
+def get_train_status() -> list[tuple[str, str, str]]:
+    """
+    Yahoo!路線情報（首都圏）から対象路線の運行状況を取得する。
+    戻り値: [(路線名, ステータス, 詳細), ...]
+    """
+    url = "https://transit.yahoo.co.jp/traininfo/area/4/"
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/120.0.0.0 Safari/537.36"
+        )
+    }
+    resp = requests.get(url, headers=headers, timeout=10)
+    resp.raise_for_status()
+
+    soup = BeautifulSoup(resp.text, "html.parser")
+    results = []
+
+    for tr in soup.find_all("tr"):
+        tds = tr.find_all("td")
+        if len(tds) < 2:
+            continue
+        route_name = tds[0].get_text(strip=True)
+        status     = tds[1].get_text(strip=True)
+        detail     = tds[2].get_text(strip=True) if len(tds) > 2 else ""
+
+        if any(line in route_name for line in TRAIN_LINES):
+            results.append((route_name, status, detail))
+
+    return results
+
+
 def send_slack(webhook_url: str, message: str) -> None:
     resp = requests.post(webhook_url, json={"text": message}, timeout=10)
     resp.raise_for_status()
@@ -110,9 +158,29 @@ def main() -> None:
         errors.append(f"投資信託取得エラー: {e}")
         fund_text = "• 取得に失敗しました"
 
+    # --- 運行情報取得 ---
+    try:
+        train_statuses = get_train_status()
+        if train_statuses:
+            lines = []
+            for route, status, detail in train_statuses:
+                emoji = next((v for k, v in STATUS_EMOJI.items() if k in status), "ℹ️")
+                line = f"• {emoji} {route}: *{status}*"
+                if detail and "ありません" not in detail:
+                    line += f"\n   _{detail}_"
+                lines.append(line)
+            train_text = "\n".join(lines)
+        else:
+            train_text = "• 対象路線の情報が見つかりませんでした"
+    except Exception as e:
+        errors.append(f"運行情報取得エラー: {e}")
+        train_text = "• 取得に失敗しました"
+
     # --- Slack メッセージ構築 ---
     message = (
         f"📊 *本日の市場情報* ({date_str})\n"
+        f"\n"
+        f"🚃 *運行情報*\n{train_text}\n"
         f"\n"
         f"💱 *為替レート*\n{fx_text}\n"
         f"\n"
