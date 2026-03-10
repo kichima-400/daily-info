@@ -33,27 +33,32 @@ def get_fx_rates() -> tuple[float, float]:
 
 def get_emaxis_slim_price() -> int | None:
     """
-    Yahoo ファイナンス（日本）から eMAXIS Slim の基準価額を取得する。
+    minkabu 投資信託 から eMAXIS Slim の基準価額を取得する。
     """
-    url = f"https://finance.yahoo.co.jp/investment/detail/{EMAXIS_SLIM_CODE}"
-    headers = {"User-Agent": "Mozilla/5.0 (compatible; MarketInfoBot/1.0)"}
+    url = f"https://itf.minkabu.jp/fund/{EMAXIS_SLIM_CODE}"
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/120.0.0.0 Safari/537.36"
+        )
+    }
     resp = requests.get(url, headers=headers, timeout=10)
     resp.raise_for_status()
 
     soup = BeautifulSoup(resp.text, "html.parser")
 
-    # 方法1: "基準価額" ラベルの直後にある数値要素を探す
+    # 方法1: <td> / <dd> などで "基準価額" ラベルの直後の数値要素を探す
     for tag in soup.find_all(string=re.compile("基準価額")):
         parent = tag.parent
-        # 同じ親または兄弟要素から数値を探す
         for sibling in parent.find_next_siblings():
-            text = sibling.get_text(strip=True).replace(",", "").replace("円", "")
+            text = sibling.get_text(strip=True).replace(",", "").replace("円", "").strip()
             if re.fullmatch(r"\d+", text):
                 return int(text)
 
     # 方法2: ページ全体テキストから「基準価額」直後の数値パターンを抽出
     page_text = soup.get_text()
-    matches = re.findall(r"基準価額[^\d]{0,10}([\d,]+)", page_text)
+    matches = re.findall(r"基準価額[^\d]{0,20}([\d,]+)", page_text)
     if matches:
         return int(matches[0].replace(",", ""))
 
