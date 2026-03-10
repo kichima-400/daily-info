@@ -10,21 +10,21 @@
   ---
   2. GitHub にコードをプッシュする
 
-  cd /c/sandbox/study30
-  git init
-  git add .
-  git commit -m "Add daily market info workflow"
-  # GitHub でリポジトリ作成後:
-  git remote add origin https://github.com/あなたのユーザー名/リポジトリ名.git
-  git branch -M main
-  git push -u origin main
+  cd /c/sandbox/study30  
+  git init  
+  git add .  
+  git commit -m "Add daily market info workflow"  
+  # GitHub でリポジトリ作成後:  
+  git remote add origin https://github.com/あなたのユーザー名/リポジトリ名.git  
+  git branch -M main  
+  git push -u origin main  
 
   ---
   3. GitHub Secret に Webhook URL を登録する
 
-  1. GitHubリポジトリ → Settings → Secrets and variables → Actions
-  2. "New repository secret" をクリック
-  3. Name: SLACK_WEBHOOK_URL、Value: コピーしたURL を貼り付けて保存
+  1. GitHubリポジトリ → Settings → Secrets and variables → Actions  
+  2. "New repository secret" をクリック  
+  3. Name: SLACK_WEBHOOK_URL、Value: コピーしたURL を貼り付けて保存  
 
   ---
   4. 動作確認（手動実行）
