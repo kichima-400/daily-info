@@ -6,6 +6,40 @@
 - eMAXIS Slim 全世界株式（オール・カントリー）基準価額
 - 都営三田線・JR京浜東北線・小田急線（小田原線・江ノ島線）の運行情報
 
+## 仕組み
+
+```
+GitHub Actions（毎朝 UTC 22:00 = JST 7:00）
+    ↓
+fetch_market.py を実行
+    ↓
+各情報を取得
+    ├─ 為替レート    ← frankfurter.app（無料API）
+    ├─ 基準価額      ← minkabu（スクレイピング）
+    └─ 運行情報      ← Yahoo!路線情報（スクレイピング）
+    ↓
+Slack に通知（Incoming Webhook）
+```
+
+### GitHub Actions
+
+`.github/workflows/daily_market.yml` で定義されたワークフローが自動実行される。
+
+| 項目 | 内容 |
+|------|------|
+| 実行タイミング | 毎日 UTC 22:00（JST 翌 7:00）、または手動実行 |
+| 実行環境 | GitHub が提供する Ubuntu（無料枠） |
+| 処理内容 | Python のセットアップ → ライブラリインストール → スクリプト実行 |
+| 認証情報 | Slack Webhook URL は GitHub Secrets で管理（コードに直接書かない） |
+
+### ファイル構成
+
+| ファイル | 役割 |
+|----------|------|
+| `fetch_market.py` | メインスクリプト。情報取得・Slack通知を行う |
+| `requirements.txt` | Python ライブラリの依存定義（requests, beautifulsoup4） |
+| `.github/workflows/daily_market.yml` | GitHub Actions のワークフロー定義 |
+
 ## Slack 通知イメージ
 
 ```
