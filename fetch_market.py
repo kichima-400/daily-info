@@ -37,13 +37,7 @@ def get_emaxis_slim_price() -> int | None:
     minkabu 投資信託 から eMAXIS Slim の基準価額を取得する。
     """
     url = f"https://itf.minkabu.jp/fund/{EMAXIS_SLIM_CODE}"
-    headers = {
-        "User-Agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/120.0.0.0 Safari/537.36"
-        )
-    }
+    headers = {"User-Agent": "fetch-market-bot/1.0"}
     resp = requests.get(url, headers=headers, timeout=10)
     resp.raise_for_status()
 
@@ -97,13 +91,7 @@ def get_train_status() -> list[tuple[str, str, str]]:
     戻り値: [(路線名, ステータス, 詳細), ...]
     """
     url = "https://transit.yahoo.co.jp/traininfo/area/4/"
-    headers = {
-        "User-Agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/120.0.0.0 Safari/537.36"
-        )
-    }
+    headers = {"User-Agent": "fetch-market-bot/1.0"}
     resp = requests.get(url, headers=headers, timeout=10)
     resp.raise_for_status()
 
