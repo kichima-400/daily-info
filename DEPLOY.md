@@ -12,6 +12,8 @@
 2. "New repository secret" をクリック
 3. Name: `SLACK_WEBHOOK_URL`、Value: コピーした URL を貼り付けて保存
 
+> **注意:** 登録済みかどうかは上記画面で確認できるが、セキュリティ上の仕様により登録した URL の値は表示されない。値を確認したい場合は一度削除して再登録する。
+
 ## 3. 動作確認（手動実行）
 
 GitHub リポジトリ → Actions タブ → Daily Market Info → "Run workflow"
