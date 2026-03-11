@@ -15,7 +15,7 @@ fetch_market.py を実行
     ↓
 各情報を取得
     ├─ 為替レート    ← frankfurter.app（無料API）
-    ├─ 基準価額      ← minkabu（スクレイピング）
+    ├─ 基準価額      ← 三菱UFJアセットマネジメント ファンド情報API（無料API）
     └─ 運行情報      ← Yahoo!路線情報（スクレイピング）
     ↓
 Slack に通知（Incoming Webhook）
@@ -37,7 +37,7 @@ Slack に通知（Incoming Webhook）
 | ファイル | 役割 |
 |----------|------|
 | `fetch_market.py` | メインスクリプト。情報取得・Slack通知を行う |
-| `requirements.txt` | Python ライブラリの依存定義（requests, beautifulsoup4） |
+| `requirements.txt` | Python ライブラリの依存定義（requests, beautifulsoup4）※ |
 | `.github/workflows/daily_market.yml` | GitHub Actions のワークフロー定義 |
 
 ## Slack 通知イメージ
@@ -58,7 +58,9 @@ Slack に通知（Incoming Webhook）
 • eMAXIS Slim 全世界株式（オール・カントリー）: 25,432 円
 ```
 
+※ beautifulsoup4 は運行情報取得（Yahoo!路線情報スクレイピング）で使用。
+
 ## 注意
 
 - eMAXIS Slim の基準価額は前営業日の値（当日リアルタイムは非公開）。
-- Yahoo!路線情報や minkabu の HTML 構造が変更された場合は取得ロジックの修正が必要になることがある。
+- Yahoo!路線情報の HTML 構造が変更された場合は運行情報の取得ロジックの修正が必要になることがある。
