@@ -7,6 +7,7 @@
 """
 
 import os
+import re
 import sys
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -33,15 +34,40 @@ def get_fx_rates() -> tuple[float, float]:
 
 def get_emaxis_slim_price() -> int | None:
     """
-    三菱UFJアセットマネジメント ファンド情報API から eMAXIS Slim の基準価額を取得する。
+    minkabu 投資信託 から eMAXIS Slim の基準価額を取得する。
     """
-    url = f"https://developer.am.mufg.jp/fund_information_latest/association_fund_cd/{EMAXIS_SLIM_CODE}"
-    resp = requests.get(url, timeout=10)
+    url = f"https://itf.minkabu.jp/fund/{EMAXIS_SLIM_CODE}"
+    headers = {"User-Agent": "fetch-market-bot/1.0"}
+    resp = requests.get(url, headers=headers, timeout=10)
     resp.raise_for_status()
-    data = resp.json()
-    datasets = data.get("datasets", [])
-    if datasets:
-        return datasets[0]["nav"]
+
+    soup = BeautifulSoup(resp.text, "html.parser")
+
+    # 構造:
+    # <div>
+    #   <div>基準価額</div>
+    #   <div>
+    #     <div>03/09</div>
+    #     <div>33,669 円</div>
+    #   </div>
+    # </div>
+    for tag in soup.find_all(string=re.compile(r"^基準価額$")):
+        label_el = tag.parent           # <div>基準価額</div>
+        price_container = label_el.find_next_sibling()
+        if price_container:
+            for el in price_container.find_all(True):
+                text = el.get_text(strip=True).replace(",", "").replace("円", "").strip()
+                if re.fullmatch(r"\d+", text) and int(text) >= 1000:
+                    return int(text)
+
+    # フォールバック: ページテキストから「基準価額」直後の価格を抽出
+    page_text = soup.get_text("\n", strip=True)
+    match = re.search(r"基準価額.*?\n([\d,]+)\s*円", page_text, re.DOTALL)
+    if match:
+        value = int(match.group(1).replace(",", ""))
+        if value >= 1000:
+            return value
+
     return None
 
 
