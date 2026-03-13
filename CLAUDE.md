@@ -31,6 +31,8 @@ The GitHub Actions workflow (`.github/workflows/daily_market.yml`) reads `SLACK_
 
 - Before starting any implementation, always present a plan and get agreement.
 - After presenting the plan, always ask "実装しますか？" and only proceed if the user answers "はい".
+- Before any destructive operations (deletions, force push, etc.), always ask for confirmation.
+- Only commit and push when explicitly requested by the user.
 
 ## Key Caveats
 
