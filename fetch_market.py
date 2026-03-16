@@ -204,7 +204,9 @@ def main() -> None:
         f"\n"
         f"💱 *為替レート*\n{fx_text}\n"
         f"\n"
-        f"📈 *投資信託（前営業日基準価額）*\n{fund_text}"
+        f"📈 *投資信託（前営業日基準価額）*\n{fund_text}\n"
+        f"\n"
+        f"🔗 https://energy-metrics-uydn.vercel.app/"
     )
     if errors:
         message += "\n\n⚠️ *エラー*\n" + "\n".join(f"• {e}" for e in errors)
