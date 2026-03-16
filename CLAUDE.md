@@ -23,9 +23,17 @@ SLACK_WEBHOOK_URL="https://hooks.slack.com/..." python fetch_market.py
 
 Each fetch is in its own try/except so a single failure doesn't block the rest of the notification.
 
+The message also includes a link to the energy metrics dashboard at the bottom.
+
+If `DRY_RUN=true` is set, Slack sending is skipped and the message is printed to stdout instead (used by `dev_market.yml`).
+
 ## Deployment
 
-The GitHub Actions workflow (`.github/workflows/daily_market.yml`) reads `SLACK_WEBHOOK_URL` from GitHub Secrets. See `DEPLOY.md` for setup steps.
+Two workflows exist:
+- `.github/workflows/daily_market.yml` — production, runs daily, reads `SLACK_WEBHOOK_URL` from GitHub Secrets
+- `.github/workflows/dev_market.yml` — development, manual trigger only, sets `DRY_RUN=true` to skip Slack and log output instead
+
+See `DEPLOY.md` for setup steps.
 
 ## Collaboration Rules
 

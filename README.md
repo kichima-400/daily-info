@@ -38,7 +38,8 @@ Slack に通知（Incoming Webhook）
 |----------|------|
 | `fetch_market.py` | メインスクリプト。情報取得・Slack通知を行う |
 | `requirements.txt` | Python ライブラリの依存定義（requests, beautifulsoup4） |
-| `.github/workflows/daily_market.yml` | GitHub Actions のワークフロー定義 |
+| `.github/workflows/daily_market.yml` | 本番ワークフロー（毎日自動実行、Slack通知あり） |
+| `.github/workflows/dev_market.yml` | 開発用ワークフロー（手動実行のみ、Slack通知なし） |
 
 ## Slack 通知イメージ
 
@@ -56,6 +57,8 @@ Slack に通知（Incoming Webhook）
 
 📈 投資信託（前営業日基準価額）
 • eMAXIS Slim 全世界株式（オール・カントリー）: 25,432 円
+
+🔗 エネルギー価格相関ダッシュボード
 ```
 
 ## 注意

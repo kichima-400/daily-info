@@ -14,6 +14,14 @@
 
 > **注意:** 登録済みかどうかは上記画面で確認できるが、セキュリティ上の仕様により登録した URL の値は表示されない。値を確認したい場合は一度削除して再登録する。
 
-## 3. 動作確認（手動実行）
+## 3. 動作確認
 
-GitHub リポジトリ → Actions タブ → Daily Market Info → "Run workflow"
+### Slack 通知なしで確認する（開発用）
+
+GitHub リポジトリ → Actions タブ → **Dev Market Info (Dry Run)** → "Run workflow"
+
+`SLACK_WEBHOOK_URL` の設定不要。実行ログにメッセージ内容が出力される。
+
+### Slack に実際に通知して確認する
+
+GitHub リポジトリ → Actions タブ → **Daily Market Info** → "Run workflow"
