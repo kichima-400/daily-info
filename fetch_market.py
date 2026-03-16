@@ -118,8 +118,9 @@ def send_slack(webhook_url: str, message: str) -> None:
 
 
 def main() -> None:
+    dry_run = os.environ.get("DRY_RUN", "").lower() == "true"
     webhook_url = os.environ.get("SLACK_WEBHOOK_URL")
-    if not webhook_url:
+    if not webhook_url and not dry_run:
         print("Error: 環境変数 SLACK_WEBHOOK_URL が設定されていません。")
         sys.exit(1)
 
@@ -208,9 +209,14 @@ def main() -> None:
     if errors:
         message += "\n\n⚠️ *エラー*\n" + "\n".join(f"• {e}" for e in errors)
 
-    send_slack(webhook_url, message)
-    print("Slack 通知を送信しました。")
-    print(message)
+    dry_run = os.environ.get("DRY_RUN", "").lower() == "true"
+    if dry_run:
+        print("[DRY RUN] Slack 通知はスキップします。")
+        print(message)
+    else:
+        send_slack(webhook_url, message)
+        print("Slack 通知を送信しました。")
+        print(message)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,25 @@
+name: Dev Market Info (Dry Run)
+
+on:
+  workflow_dispatch:  # GitHub上から手動実行のみ
+
+jobs:
+  fetch-and-notify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run market fetch script (dry run)
+        env:
+          DRY_RUN: "true"
+        run: python fetch_market.py
