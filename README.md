@@ -1,5 +1,7 @@
 # 毎朝の市場情報 Slack 通知
 
+**リポジトリ:** https://github.com/kichima-400/daily-info
+
 毎朝 JST 7:00 に以下の情報を Slack に自動通知する。
 
 - ドル円・ユーロ円レート
