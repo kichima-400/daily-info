@@ -1,16 +1,24 @@
+@docs/spec.md
+
+
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
 
-A Python script that runs daily via GitHub Actions (UTC 22:00 = JST 7:00) to send market and transit information to Slack. There is no build system or test framework — just a single script and a workflow.
+Two Python scripts run daily via GitHub Actions to send information to Slack:
+- `fetch_market.py` — UTC 22:00 (JST 7:00): market rates, fund prices, rice price, train status
+- `fetch_new_products.py` — UTC 02:30 (JST 11:30): new product popularity ranking from mdingon.com
+
+There is no build system or test framework — just scripts and workflows.
 
 ## Running Locally
 
 ```bash
 pip install -r requirements.txt
 SLACK_WEBHOOK_URL="https://hooks.slack.com/..." python fetch_market.py
+SLACK_WEBHOOK_URL="https://hooks.slack.com/..." python fetch_new_products.py
 ```
 
 ## Architecture
@@ -22,17 +30,19 @@ SLACK_WEBHOOK_URL="https://hooks.slack.com/..." python fetch_market.py
 3. **Rice price** — `price-transition.mdingon.com` REST API (no auth required); returns the latest available date's 平均売価 (tax-exclusive) for 5kg rice
 4. **Train status** — Web scraping `transit.yahoo.co.jp/traininfo/area/4/` for five lines (三田線, 京浜東北線, 小田急線, 東急田園都市線, 京急本線); Odakyu's three branches are consolidated into one entry
 
+`fetch_new_products.py` scrapes `www.mdingon.com` for the RDS new product ranking table and POSTs to Slack. Rank and trend values are stored in `<img alt="...">` attributes (not text). Half-width katakana in product names is normalized to full-width.
+
 Each fetch is in its own try/except so a single failure doesn't block the rest of the notification.
 
-The message also includes a link to the energy metrics dashboard at the bottom.
-
-If `DRY_RUN=true` is set, Slack sending is skipped and the message is printed to stdout instead (used by `dev_market.yml`).
+If `DRY_RUN=true` is set, Slack sending is skipped and the message is printed to stdout instead.
 
 ## Deployment
 
-Two workflows exist:
-- `.github/workflows/daily_market.yml` — production, runs daily, reads `SLACK_WEBHOOK_URL` from GitHub Secrets
-- `.github/workflows/dev_market.yml` — development, manual trigger only, sets `DRY_RUN=true` to skip Slack and log output instead
+Four workflows exist:
+- `.github/workflows/daily_market.yml` — production, runs daily at UTC 22:00, reads `SLACK_WEBHOOK_URL` from GitHub Secrets
+- `.github/workflows/dev_market.yml` — development, manual trigger only, sets `DRY_RUN=true`
+- `.github/workflows/new_products.yml` — production, runs daily at UTC 02:30, reads `SLACK_WEBHOOK_URL` from GitHub Secrets
+- `.github/workflows/dev_new_products.yml` — development, manual trigger only, sets `DRY_RUN=true`
 
 See `DEPLOY.md` for setup steps.
 

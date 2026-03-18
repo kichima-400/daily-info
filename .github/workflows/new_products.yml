@@ -1,0 +1,27 @@
+name: New Products Ranking
+
+on:
+  schedule:
+    - cron: '30 2 * * *'  # UTC 02:30 = JST 11:30（mdingon.com の 10:00 JST 更新後）
+  workflow_dispatch:       # GitHub上から手動実行も可能
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run new products ranking script
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: python fetch_new_products.py

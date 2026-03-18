@@ -16,12 +16,18 @@
 
 ## 3. 動作確認
 
-### Slack 通知なしで確認する（開発用）
+### 市場・運行情報
 
-GitHub リポジトリ → Actions タブ → **Dev Market Info (Dry Run)** → "Run workflow"
+| 目的 | 操作 |
+|---|---|
+| Slack 通知なし（開発用） | Actions タブ → **Dev Market Info (Dry Run)** → "Run workflow" |
+| Slack に実際に通知 | Actions タブ → **Daily Market Info** → "Run workflow" |
 
-`SLACK_WEBHOOK_URL` の設定不要。実行ログにメッセージ内容が出力される。
+### 新商品人気ランキング
 
-### Slack に実際に通知して確認する
+| 目的 | 操作 |
+|---|---|
+| Slack 通知なし（開発用） | Actions タブ → **Dev New Products Ranking (Dry Run)** → "Run workflow" |
+| Slack に実際に通知 | Actions タブ → **New Products Ranking** → "Run workflow" |
 
-GitHub リポジトリ → Actions タブ → **Daily Market Info** → "Run workflow"
+> **注意:** DRY RUN ワークフローは `SLACK_WEBHOOK_URL` の設定不要。実行ログにメッセージ内容が出力される。

@@ -1,18 +1,26 @@
-# 仕様書: fetch_market.py
+# 仕様書
 
 ## 概要
 
-毎朝 JST 7:00 に GitHub Actions で実行され、為替レート・投資信託基準価額・米価格・電車運行情報を取得して Slack に通知する Python スクリプト。
+GitHub Actions で毎日2回 Slack に自動通知する Python スクリプト群。
+
+| スクリプト | 実行タイミング | 内容 |
+|---|---|---|
+| `fetch_market.py` | JST 7:00 | 為替レート・投資信託基準価額・米価格・電車運行情報 |
+| `fetch_new_products.py` | JST 11:30 | 新商品人気ランキング（RDS ランキング） |
 
 ---
 
 ## ファイル構成
 
 ```
-fetch_market.py                        # メインスクリプト
-requirements.txt                       # 依存ライブラリ
-.github/workflows/daily_market.yml    # 本番ワークフロー（毎日自動実行）
-.github/workflows/dev_market.yml      # 開発ワークフロー（手動実行・DRY RUN）
+fetch_market.py                            # 市場・運行情報スクリプト
+fetch_new_products.py                      # 新商品ランキングスクリプト
+requirements.txt                           # 依存ライブラリ
+.github/workflows/daily_market.yml        # 本番ワークフロー（毎日自動実行）
+.github/workflows/dev_market.yml          # 開発ワークフロー（手動実行・DRY RUN）
+.github/workflows/new_products.yml        # 新商品ランキング本番ワークフロー
+.github/workflows/dev_new_products.yml    # 新商品ランキング開発ワークフロー（手動・DRY RUN）
 ```
 
 ---
@@ -25,6 +33,10 @@ requirements.txt                       # 依存ライブラリ
 | beautifulsoup4 | 4.12.3 | HTML スクレイピング |
 
 標準ライブラリ: `os`, `re`, `sys`, `time`, `unicodedata`, `datetime`, `zoneinfo`
+
+---
+
+# 仕様書: fetch_market.py
 
 ---
 
@@ -235,3 +247,99 @@ Slack Incoming Webhook に POST する。タイムアウト 10 秒。
 - minkabu.jp・Yahoo!路線情報の HTML 構造が変わるとスクレイピングが壊れる
 - User-Agent はブラウザスプーフではなく正直なボット識別子（`fetch-market-bot/1.0`）を使用
 - 小田急多摩線はモニタリング対象外
+
+---
+
+# 仕様書: fetch_new_products.py
+
+## 概要
+
+毎日 JST 11:30 に GitHub Actions で実行され、mdingon.com の新商品人気ランキングを取得して Slack に通知する Python スクリプト。データは毎朝 10:00 JST 更新のため、11:30 実行で最新データを取得できる。
+
+---
+
+## 定数
+
+| 定数 | 値 | 説明 |
+|---|---|---|
+| `JST` | `ZoneInfo("Asia/Tokyo")` | 日本標準時 |
+| `TIMEOUT` | `20` | HTTP リクエストタイムアウト（秒） |
+| `RANKING_URL` | `https://www.mdingon.com/` | スクレイピング対象 URL |
+| `HEADERS` | `{"User-Agent": "fetch-market-bot/1.0"}` | リクエストヘッダー |
+
+---
+
+## 関数仕様
+
+### `get_new_product_ranking() -> tuple[str, list[dict]]`
+
+mdingon.com から新商品人気ランキングを取得する。
+
+- **戻り値**: `(ランキング日付文字列, items リスト)`
+- items の各要素: `{"rank": int, "trend": str, "name": str, "jan_code": str, "maker": str}`
+
+**スクレイピング手順:**
+
+1. `<h2>/<h3>/<h4>` から「今売れている」を含む見出しを探す
+2. 見出し直後の `<p>` からランキング日付を抽出（例: `"2026年3月16日（月）"` → `"2026-03-16"`）
+3. 見出し直後の `<table>` をランキングテーブルとして取得
+4. 各 `<tr>` から `<td>` を5列取得:
+   - `td[0]`: `<img alt="1位">` — 順位（img の alt 属性を使用）
+   - `td[1]`: `<img alt="NEW">` — 変動（img の alt 属性を使用）
+   - `td[2]`: 商品名（テキスト）
+   - `td[3]`: JAN コード（テキスト）
+   - `td[4]`: メーカー名（テキスト）
+
+**トレンド絵文字マッピング:**
+
+| 値 | 絵文字 |
+|---|---|
+| NEW | 🆕 |
+| UP | 📈 |
+| DOWN | 📉 |
+| - | ➡️ |
+
+### `_normalize_kana(text) -> str`
+
+半角カタカナ（U+FF65〜U+FF9F）を全角カタカナに変換する。
+
+---
+
+## 環境変数
+
+| 変数名 | 必須 | 説明 |
+|---|---|---|
+| `SLACK_WEBHOOK_URL` | 本番時必須 | Slack Incoming Webhook URL |
+| `DRY_RUN` | 任意 | `"true"` に設定すると Slack 送信をスキップして stdout に出力 |
+
+---
+
+## GitHub Actions ワークフロー
+
+### new_products.yml（本番）
+
+| 項目 | 値 |
+|---|---|
+| トリガー | スケジュール（UTC 02:30 = JST 11:30）、手動実行 |
+| 実行環境 | ubuntu-latest |
+| Python バージョン | 3.11 |
+| Secrets | `SLACK_WEBHOOK_URL` |
+
+### dev_new_products.yml（開発）
+
+| 項目 | 値 |
+|---|---|
+| トリガー | 手動実行のみ（workflow_dispatch） |
+| 実行環境 | ubuntu-latest |
+| Python バージョン | 3.11 |
+| 環境変数 | `DRY_RUN=true`（Slack 送信スキップ） |
+
+---
+
+## 制約・注意事項
+
+- ランキングは mdingon.com が毎朝 10:00 JST に更新。それ以前の実行では前日データが返る
+- 順位・変動は `<img alt="...">` 属性に格納されており、テキストとしては取得できない
+- mdingon.com の HTML 構造が変わるとスクレイピングが壊れる
+- 現時点でサイトが提供するランキングは TOP3（サイト仕様による）
+- User-Agent はブラウザスプーフではなく正直なボット識別子（`fetch-market-bot/1.0`）を使用

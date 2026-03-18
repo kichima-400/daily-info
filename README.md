@@ -2,12 +2,16 @@
 
 **リポジトリ:** https://github.com/kichima-400/daily-info
 
-毎朝 JST 7:00 に以下の情報を Slack に自動通知する。
+2種類の自動通知を行う。
 
+**JST 7:00** — 市場・運行情報
 - ドル円・ユーロ円レート
 - 全世界株式（オルカン）・米国株式（S&P500）・バランス（8資産均等型）基準価額
 - 米（5kg）平均売価（税抜き）
 - 都営三田線・JR京浜東北線・小田急線・東急田園都市線・京急本線の運行情報
+
+**JST 11:30** — 新商品人気ランキング
+- mdingon.com の RDS ランキング（毎朝 10:00 JST 更新）をスクレイピング
 
 ## 仕組み
 
@@ -23,29 +27,41 @@ fetch_market.py を実行
     └─ 運行情報      ← Yahoo!路線情報（スクレイピング）
     ↓
 Slack に通知（Incoming Webhook）
+
+GitHub Actions（毎日 UTC 02:30 = JST 11:30）
+    ↓
+fetch_new_products.py を実行
+    ↓
+新商品ランキングを取得
+    └─ RDS ランキング ← mdingon.com（スクレイピング）
+    ↓
+Slack に通知（Incoming Webhook）
 ```
 
 ### GitHub Actions
 
-`.github/workflows/daily_market.yml` で定義されたワークフローが自動実行される。
-
-| 項目 | 内容 |
-|------|------|
-| 実行タイミング | 毎日 UTC 22:00（JST 翌 7:00）、または手動実行 |
-| 実行環境 | GitHub が提供する Ubuntu（無料枠） |
-| 処理内容 | Python のセットアップ → ライブラリインストール → スクリプト実行 |
-| 認証情報 | Slack Webhook URL は GitHub Secrets で管理（コードに直接書かない） |
+| ワークフロー | 実行タイミング | 内容 |
+|---|---|---|
+| `daily_market.yml` | 毎日 UTC 22:00（JST 7:00） | 市場・運行情報通知（本番） |
+| `dev_market.yml` | 手動のみ | 市場・運行情報通知（DRY RUN） |
+| `new_products.yml` | 毎日 UTC 02:30（JST 11:30） | 新商品ランキング通知（本番） |
+| `dev_new_products.yml` | 手動のみ | 新商品ランキング通知（DRY RUN） |
 
 ### ファイル構成
 
 | ファイル | 役割 |
 |----------|------|
-| `fetch_market.py` | メインスクリプト。情報取得・Slack通知を行う |
+| `fetch_market.py` | 市場・運行情報取得・Slack通知 |
+| `fetch_new_products.py` | 新商品ランキング取得・Slack通知 |
 | `requirements.txt` | Python ライブラリの依存定義（requests, beautifulsoup4） |
-| `.github/workflows/daily_market.yml` | 本番ワークフロー（毎日自動実行、Slack通知あり） |
-| `.github/workflows/dev_market.yml` | 開発用ワークフロー（手動実行のみ、Slack通知なし） |
+| `.github/workflows/daily_market.yml` | 本番ワークフロー（毎日自動実行） |
+| `.github/workflows/dev_market.yml` | 開発用ワークフロー（手動・DRY RUN） |
+| `.github/workflows/new_products.yml` | 新商品ランキング本番ワークフロー |
+| `.github/workflows/dev_new_products.yml` | 新商品ランキング開発用ワークフロー（手動・DRY RUN） |
 
 ## Slack 通知イメージ
+
+### JST 7:00 — 市場・運行情報
 
 ```
 📊 本日の情報 (2026年03月10日 07:00 JST)
@@ -73,8 +89,23 @@ Slack に通知（Incoming Webhook）
 🔗 エネルギー価格相関ダッシュボード
 ```
 
+### JST 11:30 — 新商品人気ランキング
+
+```
+🆕 新商品人気ランキング (2026年03月18日 11:30 JST)
+RDSランキング（2026-03-16 時点）
+
+1位 🆕 フルタ チョコエッグ ポケットモンスター旅立ちの３匹 20g
+   フルタ製菓 | JAN: 4902501210239
+2位 📉 ハーゲンダッツ ミニカップ ROCKYCRUNCHY! ソルティハニーバター 87ml
+   ハーゲンダッツジャパン | JAN: 4976994207151
+3位 📉 ハーゲンダッツ ミニカップ ROCKYCRUNCHY! ストロベリーブラックココア 88ml
+   ハーゲンダッツジャパン | JAN: 4976994207168
+```
+
 ## 注意
 
 - eMAXIS Slim の基準価額は前営業日の値（当日リアルタイムは非公開）。
 - 米価格は税抜き表示（軽減税率8%対象）。データは RDS-POS 提供で1日3回更新。
+- 新商品ランキングは mdingon.com の HTML 構造に依存しており、変更時は修正が必要。
 - Yahoo!路線情報や minkabu の HTML 構造が変更された場合は取得ロジックの修正が必要になることがある。
