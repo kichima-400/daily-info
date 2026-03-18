@@ -23,9 +23,9 @@ def display_width(s: str) -> int:
     """全角文字を幅2、半角を幅1として文字列の表示幅を返す。"""
     return sum(2 if unicodedata.east_asian_width(c) in ("W", "F") else 1 for c in s)
 FUNDS = [
-    ("0331418A",  "eMAXIS Slim 全世界株式（オルカン）"),
-    ("03311187",  "eMAXIS Slim 米国株式（S&P500）"),
-    ("03312175",  "eMAXIS Slim バランス（8資産均等型）"),
+    ("0331418A",  "全世界株式（オルカン）"),
+    ("03311187",  "米国株式（S&P500）"),
+    ("03312175",  "バランス（8資産均等型）"),
 ]
 
 
