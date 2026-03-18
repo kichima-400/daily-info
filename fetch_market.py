@@ -9,6 +9,7 @@
 import os
 import re
 import sys
+import time
 import unicodedata
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -17,6 +18,23 @@ import requests
 from bs4 import BeautifulSoup
 
 JST = ZoneInfo("Asia/Tokyo")
+TIMEOUT = 20
+MAX_RETRIES = 2
+RETRY_WAIT = 3
+
+
+def fetch_with_retry(url: str, headers: dict | None = None) -> requests.Response:
+    """タイムアウト・リトライ付きの GET リクエストを行う。"""
+    for attempt in range(MAX_RETRIES + 1):
+        try:
+            resp = requests.get(url, headers=headers, timeout=TIMEOUT)
+            resp.raise_for_status()
+            return resp
+        except Exception:
+            if attempt < MAX_RETRIES:
+                time.sleep(RETRY_WAIT)
+            else:
+                raise
 
 
 def display_width(s: str) -> int:
@@ -36,8 +54,7 @@ def get_fx_rates() -> tuple[float, float]:
     frankfurter.app（無料・認証不要）から USD/JPY と EUR/JPY を取得する。
     """
     url = "https://api.frankfurter.app/latest?from=JPY&to=USD,EUR"
-    resp = requests.get(url, timeout=10)
-    resp.raise_for_status()
+    resp = fetch_with_retry(url)
     data = resp.json()
     usd_jpy = round(1 / data["rates"]["USD"], 2)
     eur_jpy = round(1 / data["rates"]["EUR"], 2)
@@ -49,9 +66,7 @@ def get_emaxis_slim_price(fund_code: str) -> int | None:
     minkabu 投資信託 から指定ファンドの基準価額を取得する。
     """
     url = f"https://itf.minkabu.jp/fund/{fund_code}"
-    headers = {"User-Agent": "fetch-market-bot/1.0"}
-    resp = requests.get(url, headers=headers, timeout=10)
-    resp.raise_for_status()
+    resp = fetch_with_retry(url, headers={"User-Agent": "fetch-market-bot/1.0"})
 
     soup = BeautifulSoup(resp.text, "html.parser")
 
@@ -105,9 +120,7 @@ def get_train_status() -> list[tuple[str, str, str]]:
     戻り値: [(路線名, ステータス, 詳細), ...]
     """
     url = "https://transit.yahoo.co.jp/traininfo/area/4/"
-    headers = {"User-Agent": "fetch-market-bot/1.0"}
-    resp = requests.get(url, headers=headers, timeout=10)
-    resp.raise_for_status()
+    resp = fetch_with_retry(url, headers={"User-Agent": "fetch-market-bot/1.0"})
 
     soup = BeautifulSoup(resp.text, "html.parser")
     results = []
