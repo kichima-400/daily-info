@@ -2,13 +2,14 @@
 毎朝 JST 7:00 に実行され、以下の情報を Slack に通知する。
 - ドル円レート
 - ユーロ円レート
-- eMAXIS Slim 全世界株式（オール・カントリー）基準価額
+- eMAXIS Slim 全世界株式（オール・カントリー）・米国株式（S&P500）・バランス（8資産均等型）基準価額
 - 都営三田線・JR京浜東北線・小田急線・東急田園都市線・京急線の運行情報
 """
 
 import os
 import re
 import sys
+import unicodedata
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -16,7 +17,16 @@ import requests
 from bs4 import BeautifulSoup
 
 JST = ZoneInfo("Asia/Tokyo")
-EMAXIS_SLIM_CODE = "0331418A"  # eMAXIS Slim 全世界株式（オール・カントリー）
+
+
+def display_width(s: str) -> int:
+    """全角文字を幅2、半角を幅1として文字列の表示幅を返す。"""
+    return sum(2 if unicodedata.east_asian_width(c) in ("W", "F") else 1 for c in s)
+FUNDS = [
+    ("0331418A",  "eMAXIS Slim 全世界株式（オルカン）"),
+    ("03311187",  "eMAXIS Slim 米国株式（S&P500）"),
+    ("03312175",  "eMAXIS Slim バランス（8資産均等型）"),
+]
 
 
 def get_fx_rates() -> tuple[float, float]:
@@ -32,11 +42,11 @@ def get_fx_rates() -> tuple[float, float]:
     return usd_jpy, eur_jpy
 
 
-def get_emaxis_slim_price() -> int | None:
+def get_emaxis_slim_price(fund_code: str) -> int | None:
     """
-    minkabu 投資信託 から eMAXIS Slim の基準価額を取得する。
+    minkabu 投資信託 から指定ファンドの基準価額を取得する。
     """
-    url = f"https://itf.minkabu.jp/fund/{EMAXIS_SLIM_CODE}"
+    url = f"https://itf.minkabu.jp/fund/{fund_code}"
     headers = {"User-Agent": "fetch-market-bot/1.0"}
     resp = requests.get(url, headers=headers, timeout=10)
     resp.raise_for_status()
@@ -138,16 +148,21 @@ def main() -> None:
         errors.append(f"為替取得エラー: {e}")
         fx_text = "• 取得に失敗しました"
 
-    # --- eMAXIS Slim 取得 ---
-    try:
-        price = get_emaxis_slim_price()
-        if price:
-            fund_text = f"• eMAXIS Slim 全世界株式（オール・カントリー）: *{price:,} 円*"
-        else:
-            fund_text = "• eMAXIS Slim: 基準価額を取得できませんでした"
-    except Exception as e:
-        errors.append(f"投資信託取得エラー: {e}")
-        fund_text = "• 取得に失敗しました"
+    # --- 投資信託取得 ---
+    max_name_width = max(display_width(name) for _, name in FUNDS)
+    fund_lines = []
+    for fund_code, fund_name in FUNDS:
+        padding = " " * (max_name_width - display_width(fund_name))
+        try:
+            price = get_emaxis_slim_price(fund_code)
+            if price:
+                fund_lines.append(f"• {fund_name}{padding}: *{price:,} 円*")
+            else:
+                fund_lines.append(f"• {fund_name}{padding}: 基準価額を取得できませんでした")
+        except Exception as e:
+            errors.append(f"投資信託取得エラー ({fund_name}): {e}")
+            fund_lines.append(f"• {fund_name}{padding}: 取得に失敗しました")
+    fund_text = "\n".join(fund_lines)
 
     # --- 運行情報取得 ---
     try:
@@ -208,6 +223,7 @@ def main() -> None:
         f"\n"
         f"📈 *投資信託（前営業日基準価額）*\n{fund_text}\n"
         f"\n"
+        f"⚡ *エネルギー指標*\n"
         f"🔗 <https://energy-metrics-uydn.vercel.app/|エネルギー価格相関ダッシュボード>"
     )
     if errors:
