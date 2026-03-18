@@ -7,6 +7,7 @@ import os
 import re
 import sys
 import unicodedata
+import urllib.parse
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -141,13 +142,22 @@ def main() -> None:
         ranking_date, items = get_new_product_ranking()
         date_label = f"{ranking_date} 時点" if ranking_date else "日付不明"
 
+        def glink(query: str, label: str) -> str:
+            url = "https://www.google.com/search?q=" + urllib.parse.quote_plus(query)
+            return f"<{url}|{label}>"
+
         lines = []
         for item in items:
             emoji = TREND_EMOJI.get(item["trend"], "ℹ️")
-            jan_part = f" | JAN: {item['jan_code']}" if item["jan_code"] else ""
+            name_link  = glink(item["name"],     item["name"])
+            maker_link = glink(item["maker"],    item["maker"])
+            jan_part = (
+                f" | JAN: {glink(item['jan_code'], item['jan_code'])}"
+                if item["jan_code"] else ""
+            )
             lines.append(
-                f"{item['rank']}位 {emoji} *{item['name']}*\n"
-                f"   {item['maker']}{jan_part}"
+                f"{item['rank']}位 {emoji} *{name_link}*\n"
+                f"   {maker_link}{jan_part}"
             )
         ranking_text = "\n".join(lines)
     except Exception as e:
