@@ -2,7 +2,7 @@
 毎朝 JST 7:00 に実行され、以下の情報を Slack に通知する。
 - ドル円レート
 - ユーロ円レート
-- eMAXIS Slim 全世界株式（オール・カントリー）・米国株式（S&P500）・バランス（8資産均等型）基準価額
+- 全世界株式（オルカン）・米国株式（S&P500）・バランス（8資産均等型）基準価額
 - 都営三田線・JR京浜東北線・小田急線・東急田園都市線・京急線の運行情報
 """
 
@@ -22,6 +22,8 @@ JST = ZoneInfo("Asia/Tokyo")
 def display_width(s: str) -> int:
     """全角文字を幅2、半角を幅1として文字列の表示幅を返す。"""
     return sum(2 if unicodedata.east_asian_width(c) in ("W", "F") else 1 for c in s)
+
+
 FUNDS = [
     ("0331418A",  "全世界株式（オルカン）"),
     ("03311187",  "米国株式（S&P500）"),
@@ -229,7 +231,6 @@ def main() -> None:
     if errors:
         message += "\n\n⚠️ *エラー*\n" + "\n".join(f"• {e}" for e in errors)
 
-    dry_run = os.environ.get("DRY_RUN", "").lower() == "true"
     if dry_run:
         print("[DRY RUN] Slack 通知はスキップします。")
         print(message)

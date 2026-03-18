@@ -18,8 +18,8 @@ SLACK_WEBHOOK_URL="https://hooks.slack.com/..." python fetch_market.py
 `fetch_market.py` fetches three data sources in sequence, then POSTs a combined message to Slack via Incoming Webhook:
 
 1. **Exchange rates** — `frankfurter.app` REST API (no auth required), USD/JPY and EUR/JPY
-2. **Fund price** — Web scraping `minkabu.jp` for eMAXIS Slim 全世界株式 (`0331418A`) using BeautifulSoup; returns previous business day's 基準価額
-3. **Train status** — Web scraping `transit.yahoo.co.jp/traininfo/area/4/` for three Tokyo lines (三田線, 京浜東北線, 小田急線); Odakyu's three branches are consolidated into one entry
+2. **Fund price** — Web scraping `minkabu.jp` for three funds (全世界株式オルカン `0331418A`, 米国株式S&P500 `03311187`, バランス8資産均等型 `03312175`) using BeautifulSoup; returns previous business day's 基準価額
+3. **Train status** — Web scraping `transit.yahoo.co.jp/traininfo/area/4/` for five lines (三田線, 京浜東北線, 小田急線, 東急田園都市線, 京急本線); Odakyu's three branches are consolidated into one entry
 
 Each fetch is in its own try/except so a single failure doesn't block the rest of the notification.
 
