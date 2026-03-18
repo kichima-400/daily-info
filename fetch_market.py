@@ -4,6 +4,7 @@
 - ユーロ円レート
 - 全世界株式（オルカン）・米国株式（S&P500）・バランス（8資産均等型）基準価額
 - 都営三田線・JR京浜東北線・小田急線・東急田園都市線・京急線の運行情報
+- 米（5kg）平均売価
 """
 
 import os
@@ -139,6 +140,22 @@ def get_train_status() -> list[tuple[str, str, str]]:
     return results
 
 
+RICE_API_BASE = "https://price-transition.mdingon.com/Price"
+
+
+def get_rice_price() -> tuple[str, int]:
+    """
+    price-transition.mdingon.com から米（5kg）の平均売価を取得する。
+    戻り値: (基準日, currentSimple)
+    """
+    dates_resp = fetch_with_retry(f"{RICE_API_BASE}/GetAvailableDates")
+    latest_date = dates_resp.json()[0]
+
+    price_resp = fetch_with_retry(f"{RICE_API_BASE}/GetPrice?date={latest_date}")
+    data = price_resp.json()
+    return latest_date, data["currentSimple"]
+
+
 def send_slack(webhook_url: str, message: str) -> None:
     resp = requests.post(webhook_url, json={"text": message}, timeout=10)
     resp.raise_for_status()
@@ -178,6 +195,14 @@ def main() -> None:
             errors.append(f"投資信託取得エラー ({fund_name}): {e}")
             fund_lines.append(f"• {fund_name}{padding}: 取得に失敗しました")
     fund_text = "\n".join(fund_lines)
+
+    # --- 米価格取得 ---
+    try:
+        rice_date, rice_price = get_rice_price()
+        rice_text = f"• 平均売価: *{rice_price:,} 円* （税抜・{rice_date} 時点）"
+    except Exception as e:
+        errors.append(f"米価格取得エラー: {e}")
+        rice_text = "• 取得に失敗しました"
 
     # --- 運行情報取得 ---
     try:
@@ -237,6 +262,8 @@ def main() -> None:
         f"💱 *為替レート*\n{fx_text}\n"
         f"\n"
         f"📈 *投資信託（前営業日基準価額）*\n{fund_text}\n"
+        f"\n"
+        f"🌾 *米（5kg）価格*\n{rice_text}\n"
         f"\n"
         f"⚡ *エネルギー指標*\n"
         f"🔗 <https://energy-metrics-uydn.vercel.app/|エネルギー価格相関ダッシュボード>"

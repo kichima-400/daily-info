@@ -15,11 +15,12 @@ SLACK_WEBHOOK_URL="https://hooks.slack.com/..." python fetch_market.py
 
 ## Architecture
 
-`fetch_market.py` fetches three data sources in sequence, then POSTs a combined message to Slack via Incoming Webhook:
+`fetch_market.py` fetches four data sources in sequence, then POSTs a combined message to Slack via Incoming Webhook:
 
 1. **Exchange rates** — `frankfurter.app` REST API (no auth required), USD/JPY and EUR/JPY
 2. **Fund price** — Web scraping `minkabu.jp` for three funds (全世界株式オルカン `0331418A`, 米国株式S&P500 `03311187`, バランス8資産均等型 `03312175`) using BeautifulSoup; returns previous business day's 基準価額
-3. **Train status** — Web scraping `transit.yahoo.co.jp/traininfo/area/4/` for five lines (三田線, 京浜東北線, 小田急線, 東急田園都市線, 京急本線); Odakyu's three branches are consolidated into one entry
+3. **Rice price** — `price-transition.mdingon.com` REST API (no auth required); returns the latest available date's 平均売価 (tax-exclusive) for 5kg rice
+4. **Train status** — Web scraping `transit.yahoo.co.jp/traininfo/area/4/` for five lines (三田線, 京浜東北線, 小田急線, 東急田園都市線, 京急本線); Odakyu's three branches are consolidated into one entry
 
 Each fetch is in its own try/except so a single failure doesn't block the rest of the notification.
 
@@ -45,5 +46,7 @@ See `DEPLOY.md` for setup steps.
 ## Key Caveats
 
 - Fund prices are scraped values and reflect the previous business day, not real-time
+- Rice price is tax-exclusive (軽減税率8%対象); multiply by 1.08 for tax-inclusive estimate
+- Rice price data is sourced from RDS-POS (株式会社マーチャンダイジング・オン), updated 3 times daily
 - HTML scraping logic will break if minkabu.jp or Yahoo路線情報 change their page structure
 - User-Agent is set to an honest bot identifier (not a browser spoof)
