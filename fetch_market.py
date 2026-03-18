@@ -215,7 +215,7 @@ def main() -> None:
 
     # --- Slack メッセージ構築 ---
     message = (
-        f"📊 *本日の市場情報* ({date_str})\n"
+        f"📊 *本日の情報* ({date_str})\n"
         f"\n"
         f"🚃 *運行情報*\n{train_text}\n"
         f"\n"
