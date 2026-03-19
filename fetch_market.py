@@ -199,7 +199,7 @@ def main() -> None:
     # --- 米価格取得 ---
     try:
         rice_date, rice_price = get_rice_price()
-        rice_text = f"• 平均売価: *{rice_price:,} 円* （税抜・{rice_date} 時点）"
+        rice_text = f"• 平均売価: *<https://price-transition.mdingon.com/|{rice_price:,} 円>* （{rice_date} 時点）"
     except Exception as e:
         errors.append(f"米価格取得エラー: {e}")
         rice_text = "• 取得に失敗しました"
@@ -263,7 +263,7 @@ def main() -> None:
         f"\n"
         f"📈 *投資信託（前営業日基準価額）*\n{fund_text}\n"
         f"\n"
-        f"🌾 *米（5kg）価格*\n{rice_text}\n"
+        f"🌾 *米（5kg）税抜価格*\n{rice_text}\n"
         f"\n"
         f"⚡ *エネルギー指標*\n"
         f"🔗 <https://energy-metrics-uydn.vercel.app/|エネルギー価格相関ダッシュボード>"
