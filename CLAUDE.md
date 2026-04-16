@@ -23,12 +23,13 @@ SLACK_WEBHOOK_URL="https://hooks.slack.com/..." python fetch_new_products.py
 
 ## Architecture
 
-`fetch_market.py` fetches four data sources in sequence, then POSTs a combined message to Slack via Incoming Webhook:
+`fetch_market.py` fetches five data sources in sequence, then POSTs a combined message to Slack via Incoming Webhook:
 
 1. **Exchange rates** — `frankfurter.app` REST API (no auth required), USD/JPY and EUR/JPY
 2. **Fund price** — Web scraping `minkabu.jp` for three funds (全世界株式オルカン `0331418A`, 米国株式S&P500 `03311187`, バランス8資産均等型 `03312175`) using BeautifulSoup; returns previous business day's 基準価額
 3. **Rice price** — `price-transition.mdingon.com` REST API (no auth required); returns the latest available date's 平均売価 (tax-exclusive) for 5kg rice
-4. **Train status** — Web scraping `transit.yahoo.co.jp/traininfo/area/4/` for five lines (三田線, 京浜東北線, 小田急線, 東急田園都市線, 京急本線); Odakyu's three branches are consolidated into one entry
+4. **Hormuz transit count** — IMF PortWatch ArcGIS REST API (no auth required); returns the last 7 days of daily vessel transit counts for the Strait of Hormuz (chokepoint6); updated weekly every Tuesday
+5. **Train status** — Web scraping `transit.yahoo.co.jp/traininfo/area/4/` for five lines (三田線, 京浜東北線, 小田急線, 東急田園都市線, 京急本線); Odakyu's three branches are consolidated into one entry
 
 `fetch_new_products.py` scrapes `www.mdingon.com` for the RDS new product ranking table and POSTs to Slack. Rank and trend values are stored in `<img alt="...">` attributes (not text). Half-width katakana in product names is normalized to full-width.
 
@@ -60,3 +61,4 @@ See `DEPLOY.md` for setup steps.
 - Rice price data is sourced from RDS-POS (株式会社マーチャンダイジング・オン), updated 3 times daily
 - HTML scraping logic will break if minkabu.jp or Yahoo路線情報 change their page structure
 - User-Agent is set to an honest bot identifier (not a browser spoof)
+- Hormuz transit data is from IMF PortWatch (IMF / Oxford), updated weekly (Tuesdays JST 23:00); data may lag up to 7 days and can be affected by GPS jamming or AIS spoofing
