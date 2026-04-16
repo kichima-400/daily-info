@@ -307,7 +307,7 @@ def main() -> None:
         f"\n"
         f"🌾 *米（5kg）税抜価格*\n{rice_text}\n"
         f"\n"
-        f"⛴ *ホルムズ海峡 通過隻数*（直近7日・<https://portwatch.imf.org/pages/chokepoint6|IMF PortWatch>）\n{hormuz_text}\n"
+        f"⛴ *ホルムズ海峡 通過隻数*（直近7日・毎週火曜更新・<https://portwatch.imf.org/pages/chokepoint6|IMF PortWatch>）\n{hormuz_text}\n"
         f"\n"
         f"⚡ *エネルギー指標*\n"
         f"🔗 <https://energy-metrics-uydn.vercel.app/|エネルギー価格相関ダッシュボード>"

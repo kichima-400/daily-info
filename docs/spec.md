@@ -215,7 +215,7 @@ Slack Incoming Webhook に POST する。タイムアウト 10 秒。
 🌾 *米（5kg）税抜価格*
 • 平均売価: *<https://price-transition.mdingon.com/|3,848 円>* （2026-03-17 時点）
 
-⛴ *ホルムズ海峡 通過隻数*（直近7日・<https://portwatch.imf.org/pages/chokepoint6|IMF PortWatch>）
+⛴ *ホルムズ海峡 通過隻数*（直近7日・毎週火曜更新・<https://portwatch.imf.org/pages/chokepoint6|IMF PortWatch>）
 • 2026-03-11: *38 隻*
 • 2026-03-12: *42 隻*
 • 2026-03-13: *45 隻*
