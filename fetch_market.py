@@ -5,6 +5,7 @@
 - 全世界株式（オルカン）・米国株式（S&P500）・バランス（8資産均等型）基準価額
 - 都営三田線・JR京浜東北線・小田急線・東急田園都市線・京急線の運行情報
 - 米（5kg）平均売価
+- ホルムズ海峡通過隻数（直近7日・IMF PortWatch）
 """
 
 import os
@@ -24,11 +25,11 @@ MAX_RETRIES = 2
 RETRY_WAIT = 3
 
 
-def fetch_with_retry(url: str, headers: dict | None = None) -> requests.Response:
+def fetch_with_retry(url: str, headers: dict | None = None, params: dict | None = None) -> requests.Response:
     """タイムアウト・リトライ付きの GET リクエストを行う。"""
     for attempt in range(MAX_RETRIES + 1):
         try:
-            resp = requests.get(url, headers=headers, timeout=TIMEOUT)
+            resp = requests.get(url, headers=headers, params=params, timeout=TIMEOUT)
             resp.raise_for_status()
             return resp
         except Exception:
@@ -141,6 +142,10 @@ def get_train_status() -> list[tuple[str, str, str]]:
 
 
 RICE_API_BASE = "https://price-transition.mdingon.com/Price"
+PORTWATCH_CHOKEPOINT_URL = (
+    "https://services9.arcgis.com/weJ1QsnbMYJlCHdG/arcgis/rest/services"
+    "/Daily_Chokepoints_Data/FeatureServer/0/query"
+)
 
 
 def get_rice_price() -> tuple[str, int]:
@@ -156,12 +161,40 @@ def get_rice_price() -> tuple[str, int]:
     return latest_date, data["currentSimple"]
 
 
+def get_hormuz_transit() -> list[tuple[str, int]]:
+    """
+    IMF PortWatch から直近7日分のホルムズ海峡（chokepoint6）通過隻数を取得する。
+    戻り値: [(基準日 YYYY-MM-DD, n_total), ...] 日付昇順（古い→新しい）
+    """
+    params = {
+        "where": "portid='chokepoint6'",
+        "outFields": "date,year,month,day,n_total",
+        "orderByFields": "date DESC",
+        "resultRecordCount": 7,
+        "f": "json",
+    }
+    resp = fetch_with_retry(PORTWATCH_CHOKEPOINT_URL, params=params)
+    features = resp.json().get("features", [])
+    if not features:
+        raise ValueError("ホルムズ海峡データが取得できませんでした")
+    rows = []
+    for feat in reversed(features):  # 古い順に並べ替え
+        a = feat["attributes"]
+        date_str = f"{a['year']}-{a['month']:02d}-{a['day']:02d}"
+        rows.append((date_str, int(a["n_total"])))
+    return rows
+
+
 def send_slack(webhook_url: str, message: str) -> None:
     resp = requests.post(webhook_url, json={"text": message}, timeout=10)
     resp.raise_for_status()
 
 
 def main() -> None:
+    # Windows 環境で絵文字を含む stdout 出力が失敗しないよう UTF-8 に統一
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+
     dry_run = os.environ.get("DRY_RUN", "").lower() == "true"
     webhook_url = os.environ.get("SLACK_WEBHOOK_URL")
     if not webhook_url and not dry_run:
@@ -203,6 +236,15 @@ def main() -> None:
     except Exception as e:
         errors.append(f"米価格取得エラー: {e}")
         rice_text = "• 取得に失敗しました"
+
+    # --- ホルムズ海峡通過隻数取得 ---
+    try:
+        hormuz_rows = get_hormuz_transit()
+        hormuz_lines = [f"• {d}: *{n:,} 隻*" for d, n in hormuz_rows]
+        hormuz_text = "\n".join(hormuz_lines)
+    except Exception as e:
+        errors.append(f"ホルムズ取得エラー: {e}")
+        hormuz_text = "• 取得に失敗しました"
 
     # --- 運行情報取得 ---
     try:
@@ -264,6 +306,8 @@ def main() -> None:
         f"📈 *投資信託（前営業日基準価額）*\n{fund_text}\n"
         f"\n"
         f"🌾 *米（5kg）税抜価格*\n{rice_text}\n"
+        f"\n"
+        f"⛴ *ホルムズ海峡 通過隻数*（直近7日・<https://portwatch.imf.org/pages/chokepoint6|IMF PortWatch>）\n{hormuz_text}\n"
         f"\n"
         f"⚡ *エネルギー指標*\n"
         f"🔗 <https://energy-metrics-uydn.vercel.app/|エネルギー価格相関ダッシュボード>"

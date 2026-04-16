@@ -32,7 +32,7 @@ requirements.txt                           # 依存ライブラリ
 | requests | 2.32.3 | HTTP リクエスト |
 | beautifulsoup4 | 4.12.3 | HTML スクレイピング |
 
-標準ライブラリ: `os`, `re`, `sys`, `time`, `unicodedata`, `datetime`, `zoneinfo`
+標準ライブラリ: `os`, `re`, `sys`, `time`, `unicodedata`, `urllib.parse`, `datetime`, `zoneinfo`
 
 ---
 
@@ -49,12 +49,13 @@ requirements.txt                           # 依存ライブラリ
 | `MAX_RETRIES` | `2` | リトライ最大回数 |
 | `RETRY_WAIT` | `3` | リトライ間隔（秒） |
 | `RICE_API_BASE` | `https://price-transition.mdingon.com/Price` | 米価格 API のベース URL |
+| `PORTWATCH_CHOKEPOINT_URL` | `https://services9.arcgis.com/weJ1QsnbMYJlCHdG/arcgis/rest/services/Daily_Chokepoints_Data/FeatureServer/0/query` | IMF PortWatch ArcGIS REST API |
 
 ---
 
 ## 関数仕様
 
-### `fetch_with_retry(url, headers=None) -> requests.Response`
+### `fetch_with_retry(url, headers=None, params=None) -> requests.Response`
 
 タイムアウト・リトライ付きの GET リクエストを行う。
 
@@ -156,6 +157,20 @@ price-transition.mdingon.com から米（5kg）の平均売価を取得する。
 
 ---
 
+### `get_hormuz_transit() -> list[tuple[str, int]]`
+
+IMF PortWatch から直近7日分のホルムズ海峡（chokepoint6）通過隻数を取得する。
+
+- **エンドポイント**: `GET PORTWATCH_CHOKEPOINT_URL?where=portid='chokepoint6'&orderByFields=date+DESC&resultRecordCount=7&f=json`
+- **認証**: 不要
+- **データ提供元**: IMF / Oxford Environmental Change Institute（衛星 AIS データ）
+- **更新頻度**: 毎週火曜 JST 23:00（最大7日程度のラグあり）
+- **戻り値**: `[(YYYY-MM-DD, n_total), ...]` 日付昇順（古い→新しい）
+  - `n_total`: その日のホルムズ海峡通過総隻数
+- **`date` フィールド**: Unix タイムスタンプ（ミリ秒）。`year`/`month`/`day` フィールドを使って日付文字列を組み立てる。
+
+---
+
 ### `send_slack(webhook_url, message) -> None`
 
 Slack Incoming Webhook に POST する。タイムアウト 10 秒。
@@ -170,8 +185,9 @@ Slack Incoming Webhook に POST する。タイムアウト 10 秒。
 2. 為替レート取得
 3. 投資信託基準価額取得（3 ファンド）
 4. 米価格取得
-5. 電車運行情報取得
-6. Slack メッセージ構築・送信（または DRY RUN 時は stdout 出力）
+5. ホルムズ海峡通過隻数取得（直近7日）
+6. 電車運行情報取得
+7. Slack メッセージ構築・送信（または DRY RUN 時は stdout 出力）
 
 各取得処理は独立した try/except で囲まれており、1 つの失敗が他に影響しない。
 
@@ -196,8 +212,17 @@ Slack Incoming Webhook に POST する。タイムアウト 10 秒。
 • 米国株式（S&P500）          : *30,000 円*
 • バランス（8資産均等型）     : *15,000 円*
 
-🌾 *米（5kg）価格*
-• 平均売価: *3,848 円* （税抜・2026-03-17 時点）
+🌾 *米（5kg）税抜価格*
+• 平均売価: *<https://price-transition.mdingon.com/|3,848 円>* （2026-03-17 時点）
+
+⛴ *ホルムズ海峡 通過隻数*（直近7日・<https://portwatch.imf.org/pages/chokepoint6|IMF PortWatch>）
+• 2026-03-11: *38 隻*
+• 2026-03-12: *42 隻*
+• 2026-03-13: *45 隻*
+• 2026-03-14: *39 隻*
+• 2026-03-15: *51 隻*
+• 2026-03-16: *47 隻*
+• 2026-03-17: *44 隻*
 
 ⚡ *エネルギー指標*
 🔗 <https://energy-metrics-uydn.vercel.app/|エネルギー価格相関ダッシュボード>
@@ -247,6 +272,8 @@ Slack Incoming Webhook に POST する。タイムアウト 10 秒。
 - minkabu.jp・Yahoo!路線情報の HTML 構造が変わるとスクレイピングが壊れる
 - User-Agent はブラウザスプーフではなく正直なボット識別子（`fetch-market-bot/1.0`）を使用
 - 小田急多摩線はモニタリング対象外
+- IMF PortWatch の通過隻数は週次更新（毎週火曜 JST 23:00）のため、最大7日程度のラグがある
+- IMF PortWatch のデータは GPS ジャミング・AIS スプーフィング・信号消失（going dark）の影響を受ける可能性があり、実際の通過数と差異が生じることがある
 
 ---
 
@@ -280,7 +307,7 @@ mdingon.com から新商品人気ランキングを取得する。
 
 **スクレイピング手順:**
 
-1. `<h2>/<h3>/<h4>` から「今売れている」を含む見出しを探す
+1. `<h2>/<h3>/<h4>` から「今売れている」または「新商品」を含む見出しを探す（OR条件）
 2. 見出し直後の `<p>` からランキング日付を抽出（例: `"2026年3月16日（月）"` → `"2026-03-16"`）
 3. 見出し直後の `<table>` をランキングテーブルとして取得
 4. 各 `<tr>` から `<td>` を5列取得:
