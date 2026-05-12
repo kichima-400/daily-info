@@ -2,7 +2,7 @@ name: Daily Market Info
 
 on:
   schedule:
-    - cron: '0 22 * * *'  # UTC 22:00 = JST 翌07:00
+    - cron: '29 21 * * *'  # UTC 21:29 = JST 翌06:29
   workflow_dispatch:       # GitHub上から手動実行も可能
 
 jobs:
